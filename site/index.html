@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PM ASP — Agentic Skills Platform</title>
+<meta name="description" content="An AI-native platform for enterprise product & engineering work: chat → LLM intent router → reusable skills → orchestrated workflows → real documents, grounded in enterprise knowledge." />
+<style>
+  :root {
+    --bg:#0d1117; --bg2:#141a22; --card:#161d27; --border:#232c39;
+    --fg:#e8ecf3; --muted:#9aa7ba; --accent:#6ea8fe; --accent2:#7ee0c0;
+    --warn:#f2c66d; --shadow:0 1px 0 rgba(255,255,255,.03), 0 8px 30px rgba(0,0,0,.35);
+    --maxw:1040px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:#f7f8fa; --bg2:#eef1f6; --card:#ffffff; --border:#e2e6ee;
+      --fg:#141a22; --muted:#5c6675; --accent:#2f6fed; --accent2:#0f9d78;
+      --warn:#8a6100; --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.08);
+    }
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px; }
+  h1,h2,h3 { line-height:1.2; letter-spacing:-.01em; }
+  .muted { color:var(--muted); }
+  .eyebrow { text-transform:uppercase; letter-spacing:.12em; font-size:12px; font-weight:700; color:var(--accent2); }
+
+  /* nav */
+  header.nav { position:sticky; top:0; z-index:10; backdrop-filter:saturate(140%) blur(8px);
+    background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--border); }
+  .nav .wrap { display:flex; align-items:center; gap:18px; height:58px; }
+  .brand { font-weight:800; letter-spacing:-.02em; display:flex; align-items:center; gap:9px; }
+  .brand .dot { width:11px; height:11px; border-radius:3px; background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%, transparent); }
+  .nav nav { margin-left:auto; display:flex; gap:20px; font-size:14px; }
+  .nav nav a { color:var(--muted); }
+  .nav nav a:hover { color:var(--fg); text-decoration:none; }
+  @media (max-width:720px){ .nav nav { display:none; } }
+
+  /* hero */
+  .hero { padding:76px 0 40px; background:
+    radial-gradient(900px 380px at 78% -8%, color-mix(in srgb,var(--accent) 20%, transparent), transparent 70%),
+    radial-gradient(720px 320px at 8% 6%, color-mix(in srgb,var(--accent2) 16%, transparent), transparent 70%); }
+  .hero h1 { font-size:clamp(30px,5.4vw,52px); margin:14px 0 12px; }
+  .hero p.lede { font-size:clamp(17px,2.4vw,21px); color:var(--muted); max-width:720px; margin:0 0 26px; }
+  .cta { display:flex; flex-wrap:wrap; gap:12px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 18px; border-radius:10px; font-weight:600; font-size:15px; border:1px solid var(--border); }
+  .btn.primary { background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%, var(--accent2))); color:#fff; border-color:transparent; }
+  .btn.primary:hover { text-decoration:none; filter:brightness(1.06); }
+  .btn.ghost { background:var(--card); color:var(--fg); }
+  .btn.ghost:hover { text-decoration:none; border-color:var(--accent); }
+
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+  .pill { font-size:12.5px; color:var(--muted); background:var(--card); border:1px solid var(--border); border-radius:999px; padding:5px 11px; }
+
+  /* sections */
+  section { padding:52px 0; border-top:1px solid var(--border); }
+  section h2 { font-size:clamp(22px,3.4vw,30px); margin:8px 0 6px; }
+  section .sub { color:var(--muted); max-width:720px; margin:0 0 26px; }
+
+  .grid { display:grid; gap:16px; }
+  .g3 { grid-template-columns:repeat(3,1fr); }
+  .g2 { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:820px){ .g3,.g2 { grid-template-columns:1fr; } }
+
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow); }
+  .card h3 { margin:0 0 6px; font-size:17px; }
+  .card p { margin:0; color:var(--muted); font-size:14.5px; }
+  .card .ic { font-size:22px; }
+
+  /* pipeline */
+  .flow { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .flow .role { font-weight:700; font-size:14px; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .flow .role .tag { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:color-mix(in srgb,var(--accent) 18%, transparent); color:var(--accent); }
+  .pipe { display:flex; align-items:stretch; gap:0; overflow-x:auto; padding-bottom:6px; }
+  .step { flex:0 0 auto; min-width:118px; background:var(--card); border:1px solid var(--border); border-radius:11px; padding:10px 12px; text-align:center; }
+  .step b { display:block; font-size:13px; }
+  .step span { display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .arrow { flex:0 0 auto; align-self:center; color:var(--muted); padding:0 8px; font-size:18px; }
+  .step.accent { border-color:color-mix(in srgb,var(--accent) 55%, var(--border)); }
+  .step.warn { border-color:color-mix(in srgb,var(--warn) 55%, var(--border)); }
+  .step.data { border-color:color-mix(in srgb,var(--accent2) 55%, var(--border)); }
+
+  /* architecture layers */
+  .layers { display:flex; flex-direction:column; gap:10px; }
+  .layer { display:grid; grid-template-columns:150px 1fr; gap:14px; align-items:center;
+    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .layer .lname { font-weight:700; font-size:13.5px; }
+  .layer .lname small { display:block; color:var(--muted); font-weight:400; font-size:11.5px; }
+  .chips { display:flex; flex-wrap:wrap; gap:7px; }
+  .chip { font-size:12.5px; padding:5px 10px; border-radius:8px; background:var(--bg2); border:1px solid var(--border); }
+  @media (max-width:620px){ .layer { grid-template-columns:1fr; } }
+
+  .note { background:color-mix(in srgb,var(--warn) 14%, var(--card)); border:1px solid color-mix(in srgb,var(--warn) 40%, var(--border));
+    border-radius:12px; padding:14px 16px; font-size:14px; }
+  .note b { color:var(--warn); }
+
+  .stack { display:flex; flex-wrap:wrap; gap:9px; }
+  .stack .chip { background:var(--card); }
+
+  /* milestones */
+  .ms { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:820px){ .ms { grid-template-columns:1fr; } }
+  .phase h3 { font-size:15px; margin:0 0 8px; }
+  .phase ul { margin:0; padding-left:18px; color:var(--muted); font-size:14px; }
+  .phase li b { color:var(--fg); }
+  .phase .done { color:var(--accent2); }
+
+  footer { padding:34px 0 60px; border-top:1px solid var(--border); color:var(--muted); font-size:13.5px; }
+  footer .wrap { display:flex; flex-wrap:wrap; gap:14px; justify-content:space-between; align-items:center; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <span class="brand"><span class="dot"></span> PM ASP</span>
+    <nav>
+      <a href="#why">Why</a>
+      <a href="#how">How it works</a>
+      <a href="#arch">Architecture</a>
+      <a href="#stack">Stack</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="https://github.com/gonzalovazquez/pm-asp">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Agentic Skills Platform · Proof of Concept</span>
+    <h1>Turn a chat message into a real product document.</h1>
+    <p class="lede">PM ASP is an AI-native platform for enterprise product &amp; engineering work.
+      A conversational interface, backed by a catalog of reusable <strong>skills</strong>, routes each
+      request with an LLM, runs an orchestrated workflow with human approval where needed, grounds it in
+      enterprise knowledge (Jira, Confluence, GitHub), and produces a real, versioned artifact.</p>
+    <div class="cta">
+      <a class="btn primary" href="#how">See how it works</a>
+      <a class="btn ghost" href="https://github.com/gonzalovazquez/pm-asp/blob/main/ARCHITECTURE.md">Architecture doc ↗</a>
+      <a class="btn ghost" href="https://github.com/gonzalovazquez/pm-asp/blob/main/docs/USER_GUIDE.md">Operator guide ↗</a>
+    </div>
+    <div class="badges">
+      <span class="pill">Chat UI → LLM router → skill → n8n → LLM + MCP → artifact</span>
+      <span class="pill">Runs offline, on local Ollama, or on Anthropic</span>
+      <span class="pill">Single-tenant POC · OSS stack</span>
+    </div>
+  </div>
+</div>
+
+<!-- WHY -->
+<section id="why">
+  <div class="wrap">
+    <span class="eyebrow">Why it matters</span>
+    <h2>The work PMs repeat, done as reusable skills</h2>
+    <p class="sub">Writing a PRD, summarizing requirements, identifying risks — the same shape of task,
+      over and over, each needing the same context gathering and write-up. PM ASP makes each one a
+      first-class, governed, reusable capability instead of a one-off prompt.</p>
+    <div class="grid g3">
+      <div class="card"><div class="ic">🧩</div><h3>Reusable skills</h3><p>Every capability is a versioned skill with its own knowledge, required context, and workflow — curated by a TPM, not hard-coded.</p></div>
+      <div class="card"><div class="ic">🧠</div><h3>LLM intent routing</h3><p>An LLM reads the message and the skill catalog and picks the right skill, returning a stable execution plan. A keyword router is the offline fallback.</p></div>
+      <div class="card"><div class="ic">🔌</div><h3>Grounded in your systems</h3><p>Context comes from Jira, Confluence and GitHub through a governed MCP layer — one server per credential boundary, keys never held by the app.</p></div>
+      <div class="card"><div class="ic">✅</div><h3>Human-in-the-loop</h3><p>Skills can require approval before an artifact is finalized. Approval state is owned by the workflow engine, kept separate from conversation memory.</p></div>
+      <div class="card"><div class="ic">📄</div><h3>Real, versioned artifacts</h3><p>Outputs are stored as markdown artifacts — never overwritten. A new run is a new version; retrieval always reads the latest.</p></div>
+      <div class="card"><div class="ic">🔁</div><h3>Provider-agnostic</h3><p>Every LLM call flows through one gateway. Swap Anthropic for a local Ollama model with a config change and <em>zero</em> application code — ideal for air-gapped, regulated environments.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="wrap">
+    <span class="eyebrow">How it works</span>
+    <h2>Two journeys, one pipeline</h2>
+    <p class="sub">The same path serves an author creating a document and a consumer querying one. The LLM
+      router decides which skill runs; the workflow engine does the work.</p>
+
+    <div class="flow">
+      <p class="role"><span class="tag">Journey 1</span> Author — “create a PRD for project Atlas”</p>
+      <div class="pipe">
+        <div class="step"><b>Author</b><span>chat message</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>Chat UI</b><span>Next.js</span></div>
+        <div class="arrow">→</div>
+        <div class="step accent"><b>Intent Router</b><span>LLM picks skill</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>generate_prd</b><span>skill matched</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>n8n</b><span>workflow</span></div>
+        <div class="arrow">→</div>
+        <div class="step accent"><b>LLM + MCP</b><span>author PRD</span></div>
+        <div class="arrow">→</div>
+        <div class="step data"><b>Artifact</b><span>stored · ⚠ approval</span></div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <p class="role"><span class="tag">Journey 2</span> Consumer — “what are the requirements for project Atlas”</p>
+      <div class="pipe">
+        <div class="step"><b>Consumer</b><span>chat message</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>Chat UI</b><span>Next.js</span></div>
+        <div class="arrow">→</div>
+        <div class="step accent"><b>Intent Router</b><span>LLM picks skill</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>summarize_<wbr>requirements</b><span>skill matched</span></div>
+        <div class="arrow">→</div>
+        <div class="step data"><b>Artifact Store</b><span>latest PRD</span></div>
+        <div class="arrow">→</div>
+        <div class="step accent"><b>LLM</b><span>summarize</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><b>Consumer</b><span>gets summary</span></div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:8px">
+      <b>Provider-agnostic by design.</b> The “LLM” steps go through <strong>agentgateway</strong>, a
+      multi-provider gateway. Point it at Anthropic (cloud), a local Ollama model (no data egress), or run
+      fully offline with a keyword router — the pipeline above never changes.
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="wrap">
+    <span class="eyebrow">Architecture review</span>
+    <h2>Layered, modular, single seam per concern</h2>
+    <p class="sub">Six services in Docker Compose for local dev (Kubernetes/Helm in production). One seam
+      for LLM+MCP (agentgateway), one for orchestration (n8n), one data layer. Read the full model —
+      including a machine-readable <a href="https://github.com/gonzalovazquez/pm-asp/blob/main/architecture/pm-asp.calm.json">CALM</a>
+      description and sequence diagrams — in the <a href="https://github.com/gonzalovazquez/pm-asp/blob/main/ARCHITECTURE.md">architecture doc</a>.</p>
+
+    <div class="layers">
+      <div class="layer"><div class="lname">Client &amp; Edge<small>user surface</small></div><div class="chips"><span class="chip">Chat UI · Next.js</span><span class="chip">Author / Consumer</span></div></div>
+      <div class="layer"><div class="lname">API &amp; Routing<small>the brain</small></div><div class="chips"><span class="chip">FastAPI — API gateway</span><span class="chip">LLM Intent Router</span><span class="chip">Skill Dispatcher</span><span class="chip">execution-plan contract</span></div></div>
+      <div class="layer"><div class="lname">Orchestration<small>the hands</small></div><div class="chips"><span class="chip">n8n — skill workflows</span><span class="chip">human approval (M5)</span></div></div>
+      <div class="layer"><div class="lname">Gateway<small>one endpoint</small></div><div class="chips"><span class="chip">agentgateway — LLM gateway</span><span class="chip">MCP router</span><span class="chip">upstream key injection</span></div></div>
+      <div class="layer"><div class="lname">Providers<small>pluggable</small></div><div class="chips"><span class="chip">Anthropic (Claude)</span><span class="chip">Ollama (local)</span><span class="chip">Atlassian MCP · PAT</span><span class="chip">GitHub MCP · PAT</span></div></div>
+      <div class="layer"><div class="lname">Data<small>state</small></div><div class="chips"><span class="chip">Postgres + pgvector</span><span class="chip">Skill Registry</span><span class="chip">Conversation Store</span><span class="chip">Artifact Store</span><span class="chip">Redis · sessions</span></div></div>
+    </div>
+
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card"><h3>Trust boundaries</h3><p>Browser↔API is CORS-scoped; internal services trust the Compose network; each MCP credential (Atlassian, GitHub PAT) lives with its server, never in the app.</p></div>
+      <div class="card"><h3>Stable contract</h3><p>The router always returns <code>{skill, context_sources, requires_approval, status, candidates}</code> — the schema and workflows depend on that shape staying fixed.</p></div>
+      <div class="card"><h3>Deliberate omissions</h3><p>No executions table (n8n owns approvals) and no tenant_id yet (multi-tenancy is an M9 concern) — decisions, not gaps.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section id="stack">
+  <div class="wrap">
+    <span class="eyebrow">Built on</span>
+    <h2>An open-source stack</h2>
+    <p class="sub">Decided for modularity and Docker/Kubernetes parity.</p>
+    <div class="stack">
+      <span class="chip">Next.js</span><span class="chip">FastAPI</span><span class="chip">n8n</span>
+      <span class="chip">Postgres + pgvector</span><span class="chip">Redis</span>
+      <span class="chip">agentgateway</span><span class="chip">agentregistry (arctl)</span>
+      <span class="chip">Anthropic Claude</span><span class="chip">Ollama</span>
+      <span class="chip">MCP (Jira · Confluence · GitHub)</span><span class="chip">MLflow (M8)</span>
+      <span class="chip">Docker Compose → Kubernetes/Helm</span>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <span class="eyebrow">Roadmap</span>
+    <h2>From proof of concept to platform</h2>
+    <p class="sub">The runnable slice below is Phase 1. Later phases layer in enterprise integration and
+      production readiness.</p>
+    <div class="ms">
+      <div class="phase card">
+        <h3>Phase 1 · Proof of Concept</h3>
+        <ul>
+          <li><b class="done">M1</b> Foundation — Compose, UI, API, data, gateway ✓</li>
+          <li><b>M2</b> Streaming + conversation history</li>
+          <li><b class="done">M3</b> First skills — PRD + summarize ✓</li>
+        </ul>
+      </div>
+      <div class="phase card">
+        <h3>Phase 2 · Enterprise Integration</h3>
+        <ul>
+          <li><b>M4</b> Real MCP context (Jira/Confluence/GitHub)</li>
+          <li><b>M5</b> Workflow orchestration + approvals</li>
+          <li><b>M6</b> Skill registry as a service</li>
+        </ul>
+      </div>
+      <div class="phase card">
+        <h3>Phase 3 · Production Platform</h3>
+        <ul>
+          <li><b>M7</b> Intent router v2 (semantic)</li>
+          <li><b>M8</b> Full telemetry (MLflow)</li>
+          <li><b>M9</b> RBAC · multi-tenancy · secrets</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>PM ASP — Agentic Skills Platform · Proof of Concept</span>
+    <span>
+      <a href="https://github.com/gonzalovazquez/pm-asp">Repository</a> ·
+      <a href="https://github.com/gonzalovazquez/pm-asp/blob/main/ARCHITECTURE.md">Architecture</a> ·
+      <a href="https://github.com/gonzalovazquez/pm-asp/blob/main/docs/USER_GUIDE.md">Operator guide</a> ·
+      <a href="https://github.com/gonzalovazquez/pm-asp/blob/main/docs/adr/0001-ollama-local-mode.md">ADR 0001</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
