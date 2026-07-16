@@ -17,5 +17,6 @@
   ],
   "requires_approval": true,
   "workflow_ref": "n8n:generate_prd_v1",
-  "output_type": "markdown"
+  "output_type": "markdown",
+  "instructions_path": "skills/generate_prd/SKILL.md"
 }
