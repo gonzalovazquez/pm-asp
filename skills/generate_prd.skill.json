@@ -1,0 +1,21 @@
+{
+  "name": "generate_prd",
+  "version": "0.1.0",
+  "description": "Generates a first-draft Product Requirements Document for a named project by pulling technical-requirements context from Jira, Confluence and GitHub (via MCP) and writing it up with an LLM. Choose this when the user wants to CREATE, DRAFT, or WRITE a new PRD / requirements document for a project.",
+  "trigger_phrases": [
+    "create a prd",
+    "generate a prd",
+    "write a prd",
+    "write requirements for",
+    "draft a prd",
+    "prd for project"
+  ],
+  "required_context_sources": [
+    "jira",
+    "confluence",
+    "github"
+  ],
+  "requires_approval": true,
+  "workflow_ref": "n8n:generate_prd_v1",
+  "output_type": "markdown"
+}

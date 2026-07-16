@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1020" font-family="Helvetica, Arial, sans-serif">
+<rect x="0" y="0" width="1400" height="1020" fill="#ffffff"/>
+<text x="700" y="30" text-anchor="middle" font-size="22" fill="#1e1e1e" font-weight="bold">Agentic Skills Platform — Architecture (POC)</text>
+<text x="700" y="52" text-anchor="middle" font-size="14" fill="#757575">OSS stack . Level 1 rule-based router . single-tenant</text>
+
+<rect x="40" y="70" width="620" height="200" rx="8" fill="#dbe4ff" opacity="0.4" stroke="#4a9eed"/>
+<text x="55" y="90" font-size="14" fill="#2563eb">Client &amp; Edge</text>
+<rect x="220" y="105" width="260" height="55" rx="8" fill="#a5d8ff" stroke="#4a9eed"/>
+<text x="350" y="138" text-anchor="middle" font-size="15" fill="#1e1e1e">Chat UI (Next.js)</text>
+<rect x="70" y="200" width="220" height="50" rx="8" fill="#a5d8ff" stroke="#4a9eed"/>
+<text x="180" y="230" text-anchor="middle" font-size="14" fill="#1e1e1e">Identity Provider</text>
+<rect x="380" y="200" width="220" height="50" rx="8" fill="#a5d8ff" stroke="#4a9eed"/>
+<text x="490" y="230" text-anchor="middle" font-size="14" fill="#1e1e1e">API Gateway</text>
+<line x1="350" y1="160" x2="490" y2="200" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="290" y1="225" x2="380" y2="225" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="335" y="218" text-anchor="middle" font-size="11" fill="#555">auth</text>
+
+<rect x="40" y="300" width="620" height="180" rx="8" fill="#e5dbff" opacity="0.4" stroke="#8b5cf6"/>
+<text x="55" y="320" font-size="14" fill="#6d28d9">Orchestration</text>
+<rect x="330" y="335" width="300" height="55" rx="8" fill="#d0bfff" stroke="#8b5cf6"/>
+<text x="480" y="368" text-anchor="middle" font-size="14" fill="#1e1e1e">Intent Router — Level 1 rules (POC)</text>
+<rect x="330" y="410" width="300" height="55" rx="8" fill="#d0bfff" stroke="#8b5cf6"/>
+<text x="480" y="443" text-anchor="middle" font-size="14" fill="#1e1e1e">n8n Workflow Engine + Human Approval</text>
+<line x1="490" y1="250" x2="480" y2="335" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="480" y1="390" x2="480" y2="410" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="560" y="405" text-anchor="middle" font-size="11" fill="#555">execution plan</text>
+
+<rect x="40" y="500" width="620" height="150" rx="8" fill="#e5dbff" opacity="0.25" stroke="#8b5cf6"/>
+<text x="55" y="520" font-size="14" fill="#6d28d9">Gateway layer (OSS: agentregistry + agentgateway)</text>
+<rect x="70" y="545" width="200" height="70" rx="8" fill="#d0bfff" stroke="#8b5cf6"/>
+<text x="170" y="584" text-anchor="middle" font-size="13" fill="#1e1e1e">agentregistry (arctl)</text>
+<rect x="330" y="545" width="300" height="70" rx="8" fill="#d0bfff" stroke="#8b5cf6"/>
+<text x="480" y="578" text-anchor="middle" font-size="13" fill="#1e1e1e">agentgateway</text>
+<text x="480" y="596" text-anchor="middle" font-size="12" fill="#333">MCP Layer + LLM Gateway</text>
+<line x1="480" y1="465" x2="480" y2="545" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<line x1="270" y1="580" x2="330" y2="580" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="300" y="572" text-anchor="middle" font-size="10" fill="#555">publish</text>
+
+<rect x="40" y="670" width="620" height="120" rx="8" fill="#d3f9d8" opacity="0.4" stroke="#22c55e"/>
+<text x="55" y="690" font-size="14" fill="#15803d">External Systems</text>
+<rect x="70" y="705" width="290" height="65" rx="8" fill="#ffd8a8" stroke="#f59e0b"/>
+<text x="215" y="730" text-anchor="middle" font-size="12" fill="#1e1e1e">Atlassian MCP Server</text>
+<text x="215" y="748" text-anchor="middle" font-size="11" fill="#333">Jira+Confluence DC, self-hosted Docker</text>
+<rect x="410" y="705" width="200" height="65" rx="8" fill="#ffd8a8" stroke="#f59e0b"/>
+<text x="510" y="742" text-anchor="middle" font-size="13" fill="#1e1e1e">LLM Provider(s)</text>
+<line x1="400" y1="615" x2="230" y2="705" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="290" y="665" text-anchor="middle" font-size="11" fill="#555">MCP calls</text>
+<line x1="530" y1="615" x2="510" y2="705" stroke="#1e1e1e" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="555" y="665" text-anchor="middle" font-size="11" fill="#555">LLM calls</text>
+
+<rect x="720" y="70" width="640" height="440" rx="8" fill="#d3f9d8" opacity="0.3" stroke="#22c55e"/>
+<text x="735" y="90" font-size="14" fill="#15803d">Data Stores</text>
+<rect x="750" y="110" width="580" height="50" rx="8" fill="#c3fae8" stroke="#06b6d4"/>
+<text x="1040" y="140" text-anchor="middle" font-size="14" fill="#1e1e1e">Skill Registry (Postgres)</text>
+<rect x="750" y="180" width="580" height="50" rx="8" fill="#c3fae8" stroke="#06b6d4"/>
+<text x="1040" y="210" text-anchor="middle" font-size="14" fill="#1e1e1e">Conversation Store (pgvector)</text>
+<rect x="750" y="250" width="580" height="50" rx="8" fill="#c3fae8" stroke="#06b6d4"/>
+<text x="1040" y="280" text-anchor="middle" font-size="14" fill="#1e1e1e">Artifact Store</text>
+<rect x="750" y="320" width="580" height="50" rx="8" fill="#c3fae8" stroke="#06b6d4"/>
+<text x="1040" y="350" text-anchor="middle" font-size="14" fill="#1e1e1e">Redis (cache / session)</text>
+<rect x="750" y="390" width="580" height="50" rx="8" fill="#c3fae8" stroke="#06b6d4"/>
+<text x="1040" y="420" text-anchor="middle" font-size="14" fill="#1e1e1e">Approval / Execution State (n8n)</text>
+
+<line x1="630" y1="360" x2="750" y2="135" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowP)"/>
+<line x1="630" y1="440" x2="750" y2="275" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowP)"/>
+<line x1="630" y1="450" x2="750" y2="415" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowP)"/>
+
+<rect x="720" y="540" width="640" height="130" rx="8" fill="#dbe4ff" opacity="0.3" stroke="#4a9eed"/>
+<text x="735" y="560" font-size="14" fill="#2563eb">Observability</text>
+<rect x="750" y="580" width="580" height="65" rx="8" fill="#eebefa" stroke="#ec4899"/>
+<text x="1040" y="618" text-anchor="middle" font-size="14" fill="#1e1e1e">MLflow — tracing, eval, prompt registry</text>
+<line x1="630" y1="600" x2="750" y2="610" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowM)"/>
+<text x="690" y="595" text-anchor="middle" font-size="10" fill="#555">traces</text>
+
+<defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#1e1e1e"/></marker>
+<marker id="arrowP" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8b5cf6"/></marker>
+<marker id="arrowM" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ec4899"/></marker>
+</defs>
+</svg>

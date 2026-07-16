@@ -1,0 +1,56 @@
+{
+  "name": "summarize_requirements_v1",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "summarize_requirements",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-summarize",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "summarize-requirements-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENTGATEWAY_URL }}/v1/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: ($env.PRD_MODEL || 'claude-sonnet-5'), max_tokens: 1200, system: 'You summarize an existing Product Requirements Document for a stakeholder who asked what the requirements for the project are. Produce a tight Markdown summary: 2-3 sentence overview, then a bulleted list of the key requirements. Do not invent anything not in the document.', messages: [{ role: 'user', content: 'Project: ' + ($json.body.project || 'Untitled') + '\\n\\nStored PRD to summarize:\\n' + ($json.body.content || '') }] }) }}",
+        "options": {}
+      },
+      "id": "call-llm-summary",
+      "name": "Call LLM (Summary) via agentgateway",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { summary: $json.content[0].text, project: $('Webhook').item.json.body.project } }}",
+        "options": {}
+      },
+      "id": "respond-summarize",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Call LLM (Summary) via agentgateway", "type": "main", "index": 0 }]]
+    },
+    "Call LLM (Summary) via agentgateway": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  }
+}

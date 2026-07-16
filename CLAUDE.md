@@ -17,10 +17,18 @@ the implementation.
 
 ## Current status: POC, Phase 1 (Proof of Concept)
 
-This repo is at the very start of M1. A vertical-slice POC has been hand-built and
-verified outside the real stack (see "What already exists" below) to prove the
-router → execution plan → skill runtime contract before building the real services.
-**Nothing here is wired to a real database, LLM, or n8n instance yet.**
+A **runnable vertical slice** now exists (see "What already exists" below): a Next.js chat
+UI → FastAPI (API gateway + intent router + skill dispatcher) → n8n workflows → agentgateway
+(LLM + MCP) → Anthropic, with Postgres/Redis as the data layer, all wired together via Docker
+Compose. `README.md` is the run guide. Two demo journeys work end to end: an Author creates a
+PRD artifact; a Consumer asks for a project's requirements and gets a summary of the stored
+artifact.
+
+The stack has an `OFFLINE_MODE` (default on) that uses the Level-1 keyword router + a canned
+PRD so the whole flow is testable with no `ANTHROPIC_API_KEY` and no running MCP servers. In
+**real mode** it calls Claude (via agentgateway) for both routing and skill execution; the
+one remaining seam is the MCP context fetch inside the n8n workflow, which depends on the
+user's self-hosted Atlassian/GitHub MCP servers being up (see decision 3).
 
 ---
 
@@ -55,13 +63,16 @@ knowledge pack, but agentregistry never owns our routing metadata.
 Treat these as settled unless explicitly revisited — don't re-litigate them without a
 good reason, and if you do change one, update this file and the Notion doc together.
 
-1. **Intent Router — Level 1 only for the POC.** Rule-based phrase/keyword matching
-   against each skill's `trigger_phrases`. No LLM, no embeddings. Level 2 (semantic
-   matching, likely pgvector) is near-term once Level 1's gaps show up in real usage.
-   **Level 3 (planner) is explicitly long-term** — do not build it during the POC.
-   Contract: given a message, return `{skill, context_sources, requires_approval, status,
-   candidates}` where `status` is `matched | no_match | ambiguous`. See
-   `intent_router.py` for the reference implementation.
+1. **Intent Router — now LLM-based (revised).** *Original decision was Level 1 only
+   (rule-based phrase matching, no LLM).* Per an explicit product decision, the running
+   platform routes with an **LLM** (Claude via agentgateway): it reads the message + the
+   skills registry and picks the best skill. `backend/app/router.py` is the implementation.
+   The zero-dependency Level-1 router (`intent_router.py`) is retained as **(a)** the
+   authoritative definition of the execution-plan CONTRACT and **(b)** the offline / on-error
+   fallback. **The contract shape is unchanged and must stay stable:**
+   `{skill, context_sources, requires_approval, status, candidates}` where `status` is
+   `matched | no_match | ambiguous`. Level 2 (pgvector semantic matching) and Level 3
+   (planner) remain later-milestone options; do not build the planner during the POC.
 
 2. **MCP server boundaries = credential/trust domain, not product name.** One MCP server
    per distinct credential boundary (e.g. Jira + Confluence on the same Atlassian site
@@ -72,7 +83,11 @@ good reason, and if you do change one, update this file and the Notion doc toget
 3. **RBC's Jira/Confluence are Server/Data Center (self-hosted), not Cloud.** M4 uses a
    self-hosted Atlassian MCP server (PAT auth, one server for both Jira + Confluence)
    running on the user's local Docker machine, registered into agentregistry. Not
-   Atlassian's cloud-hosted remote MCP server (Cloud OAuth only).
+   Atlassian's cloud-hosted remote MCP server (Cloud OAuth only). **A self-hosted GitHub MCP
+   server (PAT) was added** alongside Atlassian as a second context source — separate
+   credential boundary, separate agentgateway target (`gateway/agentgateway.yaml`). Both run
+   on the user's host and agentgateway reaches them via `host.docker.internal`; the app never
+   holds the PATs (they live with each MCP server).
 
 4. **Approval state lives in n8n**, via its workflow execution/wait nodes — not a
    separate Postgres table. No `executions` table exists in the schema (see below).
@@ -117,19 +132,29 @@ itself, since there's no `executions` table to derive it from.
 
 ## What already exists (POC files)
 
-These were hand-built and verified (`python3 demo.py "create a PRD for project Atlas"`)
-before any real service existed, to prove the contract end to end:
+**Original contract files** (still the authoritative contract; `python3 demo.py "create a
+PRD for project Atlas"` still works, stdlib-only):
+- **`intent_router.py`** — Level-1 router reference impl + registry loader. Now also the
+  offline / on-error fallback used by the LLM router.
+- **`mock_prd_skill.py`** — canned Jira/Confluence + LLM stand-in. Used only in `OFFLINE_MODE`.
+- **`demo.py`** — ties router → plan → runtime end to end.
+- **`skills/generate_prd.skill.json`**, **`schema.sql`**, **`redis-key-patterns.md`**.
 
-- **`skills/generate_prd.skill.json`** — the one skill registry entry that exists so far.
-- **`intent_router.py`** — Level 1 router reference implementation. Zero dependencies
-  (stdlib only). This is the contract to preserve when porting into FastAPI at M1/M3.
-- **`mock_prd_skill.py`** — fakes the Jira/Confluence fetch + LLM call with canned data.
-  Replace with the real n8n workflow at M3/M4, not before.
-- **`demo.py`** — ties router → execution plan → skill runtime together end to end.
+**The runnable stack built on top** (see `README.md`):
+- **`skills/summarize_requirements.skill.json`** — second skill, for the Consumer retrieval
+  journey (query an existing project's requirements).
+- **`backend/`** — FastAPI: `router.py` (LLM router + Level-1 fallback), `gateway.py`
+  (Claude via agentgateway), `n8n_client.py`, `db.py` (Conversation/Artifact stores),
+  `cache.py` (Redis session), `main.py` (`/health`, `/api/skills`, `/api/chat`).
+- **`n8n/generate_prd_v1.json`, `n8n/summarize_requirements_v1.json`** — the skill workflows
+  (Webhook → LLM via agentgateway → Respond), auto-imported by the `n8n-import` container.
+- **`gateway/agentgateway.yaml`** — Anthropic LLM upstream + Atlassian/GitHub MCP targets.
+- **`frontend/`** — Next.js chat UI (Author/Consumer toggle, plan chip, approval badge).
+- **`docker-compose.yml`**, **`.env.example`** — the whole stack.
 
-When building the real thing, treat `intent_router.py`'s `route()` function signature and
-return contract as authoritative — don't redesign the execution-plan shape without
-updating this file, `schema.sql`'s `execution_plan` JSONB comment, and the Notion doc.
+Treat `intent_router.py`'s `route()` return contract as authoritative — don't redesign the
+execution-plan shape (`{skill, context_sources, requires_approval, status, candidates}`)
+without updating this file, `schema.sql`, `backend/app/router.py`, and the Notion doc.
 
 ---
 

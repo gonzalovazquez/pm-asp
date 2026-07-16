@@ -1,0 +1,321 @@
+{
+  "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+  "metadata": [
+    {
+      "name": "Product Management Agentic Skills Platform (PM ASP)",
+      "phase": "POC — Phase 1 (M1–M3 vertical slice)",
+      "single-source-of-truth": "CLAUDE.md + Notion PRD 'PM ASP v1'",
+      "notes": "This CALM model describes the runnable POC. Deferred components (MLflow, agentregistry publishing, RLS/multi-tenancy) are documented in ARCHITECTURE.md but omitted here as they are not yet built."
+    }
+  ],
+
+  "nodes": [
+    {
+      "unique-id": "author",
+      "node-type": "actor",
+      "name": "Author (TPM)",
+      "description": "Product/eng user who asks the platform to create a PRD for a project."
+    },
+    {
+      "unique-id": "consumer",
+      "node-type": "actor",
+      "name": "Consumer (Stakeholder)",
+      "description": "User who queries an existing project's requirements and gets a summary."
+    },
+    {
+      "unique-id": "chat-ui",
+      "node-type": "webclient",
+      "name": "Chat UI",
+      "description": "Next.js App Router chat surface. Renders markdown artifacts, shows the execution-plan chip and approval badge.",
+      "interfaces": [
+        { "unique-id": "chat-ui-http", "host": "localhost", "port": 3000 }
+      ]
+    },
+    {
+      "unique-id": "backend",
+      "node-type": "service",
+      "name": "Backend (API Gateway + Intent Router + Skill Dispatcher)",
+      "description": "FastAPI. Owns: request entry/CORS, the LLM intent router (Level-1 keyword fallback), skill dispatch, and persistence to the Conversation and Artifact stores.",
+      "interfaces": [
+        { "unique-id": "backend-api", "host": "localhost", "port": 8000 }
+      ],
+      "controls": {
+        "router-contract": {
+          "description": "Every route returns the stable execution-plan contract {skill, context_sources, requires_approval, status, candidates}; status in matched|no_match|ambiguous.",
+          "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decision 1)" }]
+        }
+      }
+    },
+    {
+      "unique-id": "agentgateway",
+      "node-type": "service",
+      "name": "agentgateway (LLM Gateway + MCP Router)",
+      "description": "Single authenticated endpoint. Serves the Anthropic Messages API and routes MCP tool calls to the self-hosted MCP servers. Injects the upstream ANTHROPIC_API_KEY so callers never hold it.",
+      "interfaces": [
+        { "unique-id": "agentgateway-llm", "host": "agentgateway", "port": 4000, "description": "Anthropic /v1/messages" },
+        { "unique-id": "agentgateway-mcp", "host": "agentgateway", "port": 3000, "description": "MCP /mcp (federates the MCP targets)" }
+      ],
+      "controls": {
+        "llm-key-injection": {
+          "description": "The real ANTHROPIC_API_KEY is held only in agentgateway's env and injected on the upstream request; the backend and n8n send a placeholder.",
+          "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decision 6)" }]
+        }
+      }
+    },
+    {
+      "unique-id": "n8n",
+      "node-type": "service",
+      "name": "n8n (Workflow Engine)",
+      "description": "Runs the skill workflows (generate_prd_v1, summarize_requirements_v1) triggered by webhook. Also owns approval state via wait nodes (M5, not yet built).",
+      "interfaces": [
+        { "unique-id": "n8n-webhook-prd", "host": "n8n", "port": 5678, "description": "POST /webhook/generate_prd" },
+        { "unique-id": "n8n-webhook-summarize", "host": "n8n", "port": 5678, "description": "POST /webhook/summarize_requirements" },
+        { "unique-id": "n8n-ui", "host": "localhost", "port": 5678, "description": "Editor UI" }
+      ]
+    },
+    {
+      "unique-id": "postgres",
+      "node-type": "database",
+      "name": "Postgres + pgvector",
+      "description": "Skill Registry (seed), Conversation Store (conversations, messages), Artifact Store (artifacts). schema.sql. No executions table and no tenant_id by decision.",
+      "interfaces": [
+        { "unique-id": "postgres-sql", "host": "postgres", "port": 5432 }
+      ],
+      "data-classification": "Confidential (enterprise PM content)"
+    },
+    {
+      "unique-id": "redis",
+      "node-type": "database",
+      "name": "Redis",
+      "description": "Session cache (session:{id}, 24h sliding). Other keys (streaming, approvals:pending, rate limiting, router cache) are documented seams. See redis-key-patterns.md.",
+      "interfaces": [
+        { "unique-id": "redis-conn", "host": "redis", "port": 6379 }
+      ]
+    },
+    {
+      "unique-id": "anthropic",
+      "node-type": "system",
+      "name": "Anthropic (Claude)",
+      "description": "External LLM provider reached only through agentgateway.",
+      "interfaces": [
+        { "unique-id": "anthropic-api", "url": "https://api.anthropic.com/v1/messages" }
+      ]
+    },
+    {
+      "unique-id": "atlassian-mcp",
+      "node-type": "service",
+      "name": "Atlassian MCP (Jira + Confluence, self-hosted)",
+      "description": "Self-hosted MCP server, Data Center, PAT auth. Jira + Confluence share one credential boundary → one server. Runs on the user's host, reached via host.docker.internal. Context-fetch wiring is an M4 seam.",
+      "interfaces": [
+        { "unique-id": "atlassian-mcp-http", "host": "host.docker.internal", "port": 9000, "description": "/mcp" }
+      ],
+      "controls": {
+        "credential-boundary": {
+          "description": "One MCP server per credential/trust boundary. The Atlassian PAT lives with this server; the app never holds it.",
+          "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decisions 2 & 3)" }]
+        }
+      }
+    },
+    {
+      "unique-id": "github-mcp",
+      "node-type": "service",
+      "name": "GitHub MCP (self-hosted)",
+      "description": "Self-hosted GitHub MCP server, PAT auth — its own credential boundary, its own agentgateway target. Runs on the user's host. Context-fetch wiring is an M4 seam.",
+      "interfaces": [
+        { "unique-id": "github-mcp-http", "host": "host.docker.internal", "port": 9001, "description": "/mcp" }
+      ],
+      "controls": {
+        "credential-boundary": {
+          "description": "Separate credential boundary from Atlassian; the GitHub PAT lives with this server.",
+          "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decision 2)" }]
+        }
+      }
+    },
+    {
+      "unique-id": "compose-network",
+      "node-type": "network",
+      "name": "Docker Compose network",
+      "description": "Single-tenant local dev boundary. Internal services trust each other; agentgateway has no client-side auth here (RBAC deferred to M9). Production target is Kubernetes/Helm."
+    }
+  ],
+
+  "relationships": [
+    {
+      "unique-id": "author-uses-ui",
+      "relationship-type": { "interacts": { "actor": "author", "nodes": ["chat-ui"] } },
+      "description": "Author chats to create a PRD."
+    },
+    {
+      "unique-id": "consumer-uses-ui",
+      "relationship-type": { "interacts": { "actor": "consumer", "nodes": ["chat-ui"] } },
+      "description": "Consumer chats to query requirements."
+    },
+    {
+      "unique-id": "ui-to-backend",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "chat-ui", "interfaces": ["chat-ui-http"] },
+          "destination": { "node": "backend", "interfaces": ["backend-api"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "POST /api/chat {message, conversation_id, user_id}."
+    },
+    {
+      "unique-id": "backend-route-llm",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "backend" },
+          "destination": { "node": "agentgateway", "interfaces": ["agentgateway-llm"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Intent router asks Claude to pick a skill (real mode). Falls back to Level-1 keyword routing offline / on error."
+    },
+    {
+      "unique-id": "backend-trigger-n8n",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "backend" },
+          "destination": { "node": "n8n", "interfaces": ["n8n-webhook-prd", "n8n-webhook-summarize"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Backend triggers the matched skill's n8n workflow by webhook (workflow_ref from the registry)."
+    },
+    {
+      "unique-id": "backend-to-postgres",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "backend" },
+          "destination": { "node": "postgres", "interfaces": ["postgres-sql"] }
+        }
+      },
+      "protocol": "TCP",
+      "description": "Persist conversations/messages/artifacts; read latest artifact by project for the summarize skill."
+    },
+    {
+      "unique-id": "backend-to-redis",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "backend" },
+          "destination": { "node": "redis", "interfaces": ["redis-conn"] }
+        }
+      },
+      "protocol": "TCP",
+      "description": "Refresh the session:{id} hash (best-effort)."
+    },
+    {
+      "unique-id": "n8n-to-llm",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "n8n" },
+          "destination": { "node": "agentgateway", "interfaces": ["agentgateway-llm"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Workflow calls Claude to author the PRD / write the summary."
+    },
+    {
+      "unique-id": "n8n-to-mcp-seam",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "n8n" },
+          "destination": { "node": "agentgateway", "interfaces": ["agentgateway-mcp"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "SEAM (M4, not yet wired): the generate_prd workflow will fetch project context via MCP before calling the LLM."
+    },
+    {
+      "unique-id": "gateway-to-anthropic",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agentgateway" },
+          "destination": { "node": "anthropic", "interfaces": ["anthropic-api"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "agentgateway forwards to Anthropic, injecting the API key."
+    },
+    {
+      "unique-id": "gateway-to-atlassian",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agentgateway", "interfaces": ["agentgateway-mcp"] },
+          "destination": { "node": "atlassian-mcp", "interfaces": ["atlassian-mcp-http"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "MCP tool routing to the self-hosted Atlassian server (host.docker.internal)."
+    },
+    {
+      "unique-id": "gateway-to-github",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "agentgateway", "interfaces": ["agentgateway-mcp"] },
+          "destination": { "node": "github-mcp", "interfaces": ["github-mcp-http"] }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "MCP tool routing to the self-hosted GitHub server (host.docker.internal)."
+    },
+    {
+      "unique-id": "deployed-in-compose",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "compose-network",
+          "nodes": ["chat-ui", "backend", "agentgateway", "n8n", "postgres", "redis"]
+        }
+      },
+      "description": "The six services run in Docker Compose for local dev (Kubernetes/Helm in production)."
+    }
+  ],
+
+  "flows": [
+    {
+      "unique-id": "flow-generate-prd",
+      "name": "Journey 1 — Author generates a PRD",
+      "description": "Chat message → LLM intent router picks generate_prd → n8n workflow authors the PRD via Claude (+MCP context, M4) → artifact stored in Postgres → returned to the UI (pending approval).",
+      "requirement-url": "README.md#journey-1-author",
+      "transitions": [
+        { "relationship-unique-id": "author-uses-ui", "sequence-number": 1, "description": "\"create a PRD for project Atlas\"" },
+        { "relationship-unique-id": "ui-to-backend", "sequence-number": 2, "description": "POST /api/chat; backend persists the user message" },
+        { "relationship-unique-id": "backend-route-llm", "sequence-number": 3, "description": "LLM router returns {skill: generate_prd, requires_approval: true}" },
+        { "relationship-unique-id": "backend-trigger-n8n", "sequence-number": 4, "description": "Trigger generate_prd_v1 webhook with the project + requirements" },
+        { "relationship-unique-id": "n8n-to-mcp-seam", "sequence-number": 5, "description": "SEAM (M4): fetch Jira/Confluence/GitHub context via MCP" },
+        { "relationship-unique-id": "gateway-to-atlassian", "sequence-number": 6, "description": "SEAM (M4): Atlassian context" },
+        { "relationship-unique-id": "n8n-to-llm", "sequence-number": 7, "description": "Claude authors the PRD markdown" },
+        { "relationship-unique-id": "gateway-to-anthropic", "sequence-number": 8, "description": "Upstream LLM call (key injected)" },
+        { "relationship-unique-id": "backend-to-postgres", "sequence-number": 9, "description": "Insert artifact (status pending_approval) + assistant message" }
+      ]
+    },
+    {
+      "unique-id": "flow-summarize-requirements",
+      "name": "Journey 2 — Consumer queries requirements",
+      "description": "Chat message → LLM router picks summarize_requirements → backend fetches the latest stored PRD → n8n summarizes it via Claude → summary returned to the UI.",
+      "requirement-url": "README.md#journey-2-consumer",
+      "transitions": [
+        { "relationship-unique-id": "consumer-uses-ui", "sequence-number": 1, "description": "\"what are the requirements for project Atlas\"" },
+        { "relationship-unique-id": "ui-to-backend", "sequence-number": 2, "description": "POST /api/chat; backend persists the user message" },
+        { "relationship-unique-id": "backend-route-llm", "sequence-number": 3, "description": "LLM router returns {skill: summarize_requirements}" },
+        { "relationship-unique-id": "backend-to-postgres", "sequence-number": 4, "description": "Read latest generate_prd artifact for the project" },
+        { "relationship-unique-id": "backend-trigger-n8n", "sequence-number": 5, "description": "Trigger summarize_requirements_v1 with the stored PRD content" },
+        { "relationship-unique-id": "n8n-to-llm", "sequence-number": 6, "description": "Claude writes the summary" },
+        { "relationship-unique-id": "gateway-to-anthropic", "sequence-number": 7, "description": "Upstream LLM call (key injected)" },
+        { "relationship-unique-id": "backend-to-postgres", "sequence-number": 8, "description": "Persist the assistant summary message" }
+      ]
+    }
+  ],
+
+  "controls": {
+    "human-approval": {
+      "description": "generate_prd is requires_approval=true. Surfaced as a UI badge in the POC; enforcement (n8n wait node) is deferred to M5. Approval state lives in n8n, never in Postgres.",
+      "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decisions 4)" }]
+    },
+    "multi-tenancy": {
+      "description": "Single-tenant only through Phases 1–2. No tenant_id / RLS yet; revisited at M9 (edge-only vs. threaded-through-every-store + Postgres RLS + per-tenant MCP credential scoping).",
+      "requirements": [{ "requirement-url": "CLAUDE.md#architecture-decisions (decisions 5)" }]
+    }
+  }
+}

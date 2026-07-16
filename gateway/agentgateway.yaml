@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+# ============================================================
+# agentgateway — the single endpoint for both the LLM gateway and MCP routing.
+# Backend (intent router) and n8n (skill workflows) both call this on the
+# internal compose network at http://agentgateway:3000.
+#
+# Decisions honored:
+#  - LLM Gateway role belongs to agentgateway, not MLflow (decision 5.6).
+#  - One MCP server per credential/trust boundary (decision 5.4): Atlassian
+#    (Jira+Confluence share one site credential) and GitHub are separate targets.
+#  - No client-side auth on this listener for the POC: it is reachable only on
+#    the internal Docker network. RBAC/JWT (shipped in agentgateway OSS) is an
+#    M9 concern (decision 6). agentgateway still injects the real upstream keys.
+# ============================================================
+
+# ---- LLM gateway: Anthropic upstream -----------------------
+# Exposed at POST /v1/messages in native Anthropic Messages format.
+# agentgateway adds the x-api-key + anthropic-version headers upstream, so
+# callers never handle ANTHROPIC_API_KEY themselves.
+llm:
+  providers:
+    - name: anthropic-prod
+      provider: anthropic
+      params:
+        apiKey: "$ANTHROPIC_API_KEY"
+  models:
+    # "*" forwards whatever model id the caller passes (claude-haiku-4-5-*,
+    # claude-sonnet-5, ...) straight through to Anthropic.
+    - name: "*"
+      provider:
+        reference: anthropic-prod
+
+# ---- MCP routing -------------------------------------------
+# Federates the two self-hosted MCP servers behind one /mcp endpoint.
+# The servers run on the host; the PAT auth lives with each server, so the
+# gateway just needs network reach (host.docker.internal, see compose
+# extra_hosts). Ports here must match your running MCP servers — override with
+# ATLASSIAN_MCP_URL / GITHUB_MCP_URL in .env and adjust if different.
+mcp:
+  port: 3000
+  policies:
+    cors:
+      allowOrigins:
+        - "*"
+      allowHeaders:
+        - "*"
+      exposeHeaders:
+        - "Mcp-Session-Id"
+  targets:
+    # Atlassian: Jira + Confluence (Data Center, PAT) — one target, one boundary.
+    - name: atlassian
+      mcp:
+        host: http://host.docker.internal:9000/mcp/
+    # GitHub (PAT) — its own credential boundary, its own target.
+    - name: github
+      mcp:
+        host: http://host.docker.internal:9001/mcp/

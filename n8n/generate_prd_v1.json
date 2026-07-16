@@ -1,0 +1,68 @@
+{
+  "name": "generate_prd_v1",
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate_prd",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-generate-prd",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "generate-prd-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENTGATEWAY_URL }}/v1/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: ($env.PRD_MODEL || 'claude-sonnet-5'), max_tokens: 4000, system: 'You are a senior Technical Product Manager (TPM). Write a clear, well-structured Product Requirements Document (PRD) in Markdown for the named project, based on the provided technical requirements and any Jira/Confluence/GitHub context. Include these sections: # PRD: <project>, ## Summary, ## Goals, ## Non-Goals, ## Requirements, ## Milestones, ## Risks. Be concrete and concise.', messages: [{ role: 'user', content: 'Project: ' + ($json.body.project || 'Untitled') + '\\n\\nTechnical requirements / context from the requester:\\n' + ($json.body.message || '') }] }) }}",
+        "options": {}
+      },
+      "id": "call-llm-prd",
+      "name": "Call LLM (PRD) via agentgateway",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { markdown: $json.content[0].text, project: $('Webhook').item.json.body.project } }}",
+        "options": {}
+      },
+      "id": "respond-generate-prd",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "content": "## generate_prd_v1\nWebhook → LLM (via agentgateway) → PRD markdown.\n\n**MCP context seam (M4):** to ground the PRD in real Jira/Confluence/GitHub data, insert an MCP step before the LLM node — an n8n **MCP Client Tool** node (or an HTTP Request to agentgateway's `/mcp` endpoint) that fetches the project's epics/pages/repo, then pass that text into the prompt. The Atlassian + GitHub MCP servers are fronted by agentgateway; they must be running on the host for this to return real data.",
+        "height": 260,
+        "width": 360
+      },
+      "id": "note-generate-prd",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [420, 480]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Call LLM (PRD) via agentgateway", "type": "main", "index": 0 }]]
+    },
+    "Call LLM (PRD) via agentgateway": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  }
+}
