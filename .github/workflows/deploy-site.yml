@@ -5,7 +5,9 @@ name: Deploy site to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # Trigger on whichever branch you publish from. feat/poc is currently the
+    # default branch; keep main here for when the site is promoted there.
+    branches: [main, feat/poc]
     paths: [site/**, .github/workflows/deploy-site.yml]
   workflow_dispatch:
 
