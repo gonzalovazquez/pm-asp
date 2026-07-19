@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PM ASP — Product Map Demo (Atlas)</title>
+<meta name="description" content="One product, three journeys. An interactive demo: switch the Product / Delivery / Program lens and watch different parts of the product lifecycle light up." />
+<style>
+  :root {
+    --bg:#0d1117; --bg2:#141a22; --card:#161d27; --border:#232c39;
+    --fg:#e8ecf3; --muted:#9aa7ba; --accent:#6ea8fe; --accent2:#7ee0c0; --warn:#f2c66d; --bad:#ff8f8f;
+    --dim:.28; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f7f8fa; --bg2:#eef1f6; --card:#fff; --border:#e2e6ee; --fg:#141a22;
+      --muted:#5c6675; --accent:#2f6fed; --accent2:#0f9d78; --warn:#8a6100; --bad:#c0392b;
+      --shadow:0 8px 24px rgba(16,24,40,.08); }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 18px; }
+
+  /* header */
+  header.top { border-bottom:1px solid var(--border); background:color-mix(in srgb,var(--bg) 85%,transparent); position:sticky; top:0; z-index:5; backdrop-filter:blur(8px); }
+  .top .wrap { display:flex; align-items:center; gap:14px; height:58px; }
+  .brand { font-weight:800; letter-spacing:-.02em; display:flex; align-items:center; gap:9px; }
+  .brand .dot { width:11px; height:11px; border-radius:3px; background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+  .top .prod { color:var(--muted); font-size:13.5px; }
+  .top .spacer { margin-left:auto; }
+  .top a.home { color:var(--muted); font-size:13.5px; }
+
+  /* lens selector */
+  .lensbar { padding:18px 0 6px; }
+  .lens-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  .lens-row .lbl { color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.1em; }
+  .lens { display:inline-flex; flex-direction:column; gap:1px; border:1px solid var(--border); background:var(--card); border-radius:12px; padding:8px 14px; cursor:pointer; min-width:118px; transition:all .18s; }
+  .lens b { font-size:14px; } .lens small { color:var(--muted); font-size:11.5px; }
+  .lens.active { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent); }
+  .lens.active b { color:var(--accent); }
+
+  .blurb { margin:12px 0 4px; color:var(--muted); font-size:14.5px; }
+  .blurb b { color:var(--fg); }
+
+  /* map */
+  .map { padding:16px 0 8px; }
+  .stages { display:flex; gap:0; overflow-x:auto; padding-bottom:10px; }
+  .stage { flex:0 0 auto; width:190px; padding:0 8px; }
+  .stage + .stage { border-left:1px dashed var(--border); }
+  .stage-h { display:flex; align-items:center; gap:8px; margin:0 0 4px; font-weight:700; font-size:13.5px; }
+  .stage-h .sd { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .sd.done { background:var(--accent2); } .sd.active { background:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent); } .sd.todo { background:var(--muted); opacity:.5; }
+  .stage-sub { color:var(--muted); font-size:11px; margin:0 0 10px; height:14px; }
+  .nodes { display:flex; flex-direction:column; gap:8px; }
+  .node { text-align:left; width:100%; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:9px 10px; cursor:pointer; transition:opacity .22s, transform .12s, border-color .18s; display:flex; gap:9px; align-items:flex-start; }
+  .node:hover { transform:translateY(-1px); }
+  .node .ic { font-size:15px; line-height:1.2; }
+  .node .nt { font-size:13px; font-weight:600; }
+  .node .nm { font-size:11px; color:var(--muted); }
+  .node.lit { border-color:color-mix(in srgb,var(--accent) 45%,var(--border)); }
+  .node.lit.metric { border-color:color-mix(in srgb,var(--accent2) 50%,var(--border)); }
+  .node.dim { opacity:var(--dim); }
+  .node.missing .nt { color:var(--bad); }
+  .node.missing { border-style:dashed; }
+  .node.flash { animation:flash 1.1s ease; }
+  @keyframes flash { 0%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent); } 100%{ box-shadow:0 0 0 14px transparent; } }
+  .cov { margin-left:auto; font-size:10.5px; color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:1px 7px; }
+  .cov.gap { color:var(--bad); border-color:color-mix(in srgb,var(--bad) 45%,var(--border)); }
+
+  /* detail */
+  .detail { margin:14px 0 40px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow); min-height:180px; }
+  .detail .dh { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .detail .dh .k { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:2px 9px; }
+  .detail h2 { margin:0; font-size:18px; }
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:9px; font-weight:600; font-size:13.5px; border:1px solid var(--border); background:var(--card); color:var(--fg); cursor:pointer; }
+  .btn.primary { background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,var(--accent2))); color:#fff; border-color:transparent; }
+  .btn:hover { filter:brightness(1.05); }
+  .md h1 { font-size:19px; margin:6px 0 8px; } .md h2 { font-size:15px; margin:14px 0 6px; } .md h3 { font-size:13.5px; margin:12px 0 5px; }
+  .md p { margin:7px 0; } .md ul { margin:7px 0; padding-left:20px; } .md li { margin:3px 0; }
+  .md table { border-collapse:collapse; margin:8px 0; font-size:13px; } .md th,.md td { border:1px solid var(--border); padding:5px 9px; text-align:left; }
+  .md em { color:var(--muted); }
+  .empty { color:var(--muted); font-size:14px; }
+  .placeholder { color:var(--muted); text-align:center; padding:34px 10px; }
+  .placeholder .big { font-size:30px; }
+
+  /* charts */
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px){ .charts { grid-template-columns:1fr; } .stage { width:168px; } }
+  .chart { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .chart h3 { margin:0 0 8px; font-size:13px; }
+  .tiles { display:flex; gap:10px; flex-wrap:wrap; margin-top:2px; }
+  .tile { flex:1; min-width:120px; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+  .tile .v { font-size:24px; font-weight:800; } .tile .l { color:var(--muted); font-size:12px; }
+  .tile .v.warn { color:var(--warn); }
+  .legend { display:flex; gap:14px; font-size:11.5px; color:var(--muted); margin-top:6px; }
+  .legend i { display:inline-block; width:18px; height:0; border-top:2px solid var(--accent); vertical-align:middle; margin-right:5px; }
+  .legend i.ideal { border-top:2px dashed var(--muted); }
+
+  footer { border-top:1px solid var(--border); color:var(--muted); font-size:13px; padding:20px 0 40px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><span class="dot"></span> PM ASP</span>
+    <span class="prod">· Product Map Demo</span>
+    <span class="spacer"></span>
+    <a class="home" href="../">← Overview</a>
+  </div>
+</header>
+
+<div class="wrap lensbar">
+  <div id="hero"></div>
+  <div class="lens-row" id="lensRow"></div>
+  <p class="blurb" id="blurb"></p>
+</div>
+
+<div class="wrap map">
+  <div class="stages" id="stages"></div>
+</div>
+
+<div class="wrap">
+  <div class="detail" id="detail"></div>
+</div>
+
+<footer><div class="wrap">
+  One product, three journeys — all data is mock. Part of the
+  <a href="https://github.com/gonzalovazquez/pm-asp">PM ASP</a> proof of concept.
+</div></footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
