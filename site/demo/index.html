@@ -6,15 +6,20 @@
 <title>PM ASP — Product Map Demo (Atlas)</title>
 <meta name="description" content="One product, three journeys. An interactive demo: switch the Product / Delivery / Program lens and watch different parts of the product lifecycle light up." />
 <style>
+  /* Light-only palette — clean, high-contrast, easy to read (no dark mode). */
   :root {
-    --bg:#0d1117; --bg2:#141a22; --card:#161d27; --border:#232c39;
-    --fg:#e8ecf3; --muted:#9aa7ba; --accent:#6ea8fe; --accent2:#7ee0c0; --warn:#f2c66d; --bad:#ff8f8f;
-    --dim:.28; --shadow:0 8px 30px rgba(0,0,0,.35);
-  }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#f7f8fa; --bg2:#eef1f6; --card:#fff; --border:#e2e6ee; --fg:#141a22;
-      --muted:#5c6675; --accent:#2f6fed; --accent2:#0f9d78; --warn:#8a6100; --bad:#c0392b;
-      --shadow:0 8px 24px rgba(16,24,40,.08); }
+    --bg:#f6f8fb;      /* page background */
+    --bg2:#eef2f7;     /* subtle panels / chart backgrounds */
+    --card:#ffffff;    /* cards */
+    --border:#d9e0ea;  /* borders */
+    --fg:#111826;      /* near-black body text (high contrast) */
+    --muted:#525c6e;   /* readable secondary text */
+    --accent:#2563eb;  /* blue */
+    --accent2:#0e9f6e; /* green */
+    --warn:#b45309;    /* amber — readable on light */
+    --bad:#c62828;     /* red */
+    --dim:.5;          /* dimmed nodes stay legible on white */
+    --shadow:0 6px 20px rgba(16,24,40,.08);
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
