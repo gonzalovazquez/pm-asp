@@ -232,6 +232,61 @@
     else renderProgramOverview();
   }
 
+  /* ---------- guided tour ---------- */
+  var TOUR = [
+    { lens: "product", cap: "Meet <b>Atlas</b> — one product moving through its lifecycle. Three roles work the <b>same map</b>. Watch how it comes together." },
+    { lens: "product", focus: "prd", cap: "<b>Product journey</b> (TPM): the PRD is generated in <b>Definition</b>, grounded in Jira &amp; Confluence context." },
+    { lens: "product", run: "risks", cap: "Same journey — the <b>identify_risks</b> skill surfaces delivery &amp; technical risks as a new artifact on the map." },
+    { lens: "product", focus: "roadmap", cap: "<b>Planning</b>: a milestone roadmap turns scope into a plan." },
+    { lens: "delivery", dashboard: true, cap: "<b>Delivery journey</b> (Delivery Lead): the same product, now by the numbers — burndown shows the sprint is <b>+5 points behind</b>." },
+    { lens: "program", overview: true, cap: "<b>Program journey</b> (Program Manager): zoom out — artifact coverage and gaps across <b>every stage</b>. Launch is missing its Release Notes." },
+    { lens: "program", run: "release", cap: "One click runs the skill, <b>fills the gap</b>, and the map updates live — coverage turns green." },
+    { lens: "program", overview: true, cap: "Everything comes back to <b>one product</b>. Three journeys, one map." },
+  ];
+  var tour = { i: -1, playing: false, timer: null, bar: null };
+
+  function buildTourBar() {
+    var b = el("div", null,
+      '<span class="step" id="tStep"></span><span class="cap" id="tCap"></span>' +
+      '<span class="ctrls">' +
+        '<button id="tPrev" title="Previous">‹</button>' +
+        '<button id="tPlay" class="primary" title="Play / pause">❚❚</button>' +
+        '<button id="tNext" title="Next">›</button>' +
+        '<button id="tStop" title="End tour">✕</button></span>');
+    b.id = "tourbar";
+    document.body.appendChild(b);
+    b.querySelector("#tPrev").onclick = function () { go(tour.i - 1); };
+    b.querySelector("#tNext").onclick = function () { tour.i >= TOUR.length - 1 ? stopTour() : go(tour.i + 1); };
+    b.querySelector("#tPlay").onclick = function () { tour.playing = !tour.playing; updateBar(); schedule(); };
+    b.querySelector("#tStop").onclick = stopTour;
+    tour.bar = b;
+  }
+  function startTour() { if (!tour.bar) buildTourBar(); tour.bar.classList.add("on"); document.body.classList.add("touring"); tour.playing = true; go(0); }
+  function stopTour() { if (tour.timer) clearTimeout(tour.timer); tour.playing = false; tour.i = -1; if (tour.bar) tour.bar.classList.remove("on"); document.body.classList.remove("touring"); setLens("product"); }
+  function schedule() { if (tour.timer) clearTimeout(tour.timer); if (tour.playing && tour.i < TOUR.length - 1) tour.timer = setTimeout(function () { go(tour.i + 1); }, 5400); }
+  function go(i) { if (i < 0 || i >= TOUR.length) return; runStep(i); schedule(); }
+  function runStep(i) {
+    tour.i = i; var s = TOUR[i];
+    applyLens(s.lens);
+    if (s.run) runSkill(nodeById(s.run));
+    else if (s.dashboard) renderDeliveryDashboard("Delivery metrics");
+    else if (s.overview) renderProgramOverview();
+    else if (s.focus) openNode(nodeById(s.focus));
+    else openNode(nodeById("prd"));
+    var id = s.run || s.focus;
+    if (id) { var chip = document.querySelector('[data-node="' + id + '"]'); if (chip) { chip.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }); chip.classList.add("tour-spot"); setTimeout(function () { chip.classList.remove("tour-spot"); }, 1600); } }
+    updateBar();
+  }
+  function updateBar() {
+    if (!tour.bar || tour.i < 0) return;
+    var s = TOUR[tour.i];
+    tour.bar.querySelector("#tCap").innerHTML = s.cap;
+    tour.bar.querySelector("#tStep").textContent = (tour.i + 1) + " / " + TOUR.length;
+    tour.bar.querySelector("#tPrev").disabled = tour.i <= 0;
+    tour.bar.querySelector("#tPlay").textContent = tour.playing ? "❚❚" : "▶";
+    tour.bar.querySelector("#tNext").textContent = tour.i >= TOUR.length - 1 ? "Finish" : "›";
+  }
+
   /* ---------- init ---------- */
   function init() {
     $("#hero").innerHTML = '<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">' + D.product +
@@ -245,6 +300,9 @@
       b.onclick = function () { setLens(k); };
       row.appendChild(b);
     });
+    var tourBtn = el("button", "lens tour", "▶ Guided tour");
+    tourBtn.onclick = startTour;
+    row.appendChild(tourBtn);
     renderStages();
     setLens("product");
   }
