@@ -15,6 +15,11 @@ Skills, Workflows, Intents, Context, Artifacts, Executions. Keep these names con
 across code, schema, and docs — they're the shared language between the design doc and
 the implementation.
 
+A **proposed** domain layer above these — Lines of business, Initiatives, Objectives/Key
+results, Stages, Value results — is specified in [`docs/value-spine.md`](docs/value-spine.md)
+with a proposed migration in [`schema-value-spine.sql`](schema-value-spine.sql). Nothing
+implements it yet. See decision 7 below before building against it.
+
 ## Current status: POC, Phase 1 (Proof of Concept)
 
 A **runnable vertical slice** now exists (see "What already exists" below): a Next.js chat
@@ -104,6 +109,30 @@ good reason, and if you do change one, update this file and the Notion doc toget
    API-key auth, rate limiting, and OTel tracing for free. Whether Solo.io's paid tier is
    needed is a procurement question for M9, not an architecture question now.
 
+7. **A value-spine domain layer is the intended direction — proposed, not settled.**
+   The POC answers *how* product work gets executed; it has no concept of *what the work
+   was for or what it turned out to be worth*. A generated PRD today is an orphan: it knows
+   its skill and its conversation and nothing else. The direction is a first-class
+   `initiative` running a fixed seven-stage lifecycle (intake → objective/KPIs →
+   requirements → plan → handoff → launch → value review), owned by a line of business,
+   backed by a Jira initiative the TPM never opens, and closing with a measured value
+   result that rolls up to a KPI, an objective and a line-of-business ledger. Full spec:
+   [`docs/value-spine.md`](docs/value-spine.md); proposed DDL: `schema-value-spine.sql`.
+
+   Three things this deliberately does **not** disturb: the router's execution-plan
+   contract, n8n's ownership of approval mechanics (stage `acceptance_criteria` evaluate an
+   output; they do not gate a run), and single-tenancy. The key structural change is that a
+   **stage** is what must be true and a **skill** is one way to make it true — so
+   `generate_prd` becomes the default implementation of the Requirements stage rather than
+   something a user summons by typing, and the router's result lands on a stage instead of
+   floating in a conversation.
+
+   **Open, and worth deciding before any code:** whether this comes before or after
+   finishing M4/M5, and whether Jira becomes a write target rather than only a context
+   source. Per the working conventions below, do not start building this without an
+   explicit instruction — it is later than the current milestone and it reframes the
+   product.
+
 ---
 
 ## Data schema
@@ -182,7 +211,11 @@ without updating this file, `schema.sql`, `backend/app/router.py`, and the Notio
   instrumentation.
 - **M9 — Enterprise readiness:** RBAC, multi-tenancy (`tenant_id` + RLS), secrets
   management, resolve agentregistry Enterprise-vs-OSS question.
-- **M10 — Platform expansion:** Broaden into a full AI product management platform.
+- **M10 — Platform expansion:** Broaden into a full AI product management platform. This
+  is where the value-spine domain layer lands (decision 7, `docs/value-spine.md`):
+  initiatives, the seven-stage lifecycle, the OKR/KPI ladder, value reviews and the
+  line-of-business ledger, then capacity planning and agent-owned stages with acceptance
+  criteria. Sequencing against M4–M9 is an open question, not settled.
 
 ---
 

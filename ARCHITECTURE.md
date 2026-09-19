@@ -209,6 +209,15 @@ Postgres DDL: [`schema.sql`](schema.sql). Redis conventions: [`redis-key-pattern
 approval mechanics; an outcome log is a maybe for M5/M9) and **no `tenant_id`** anywhere
 (multi-tenancy deferred to M9).
 
+**Known structural gap.** There is no domain object above `artifacts`. A generated PRD
+carries a `skill_name` and a `conversation_id` and nothing else — it cannot say which line
+of business asked for it, which KPI it was meant to move, or whether it moved it. The
+proposed fix is the value-spine layer (decision 7): `initiatives`, `initiative_stages`,
+`objectives`/`key_results`, `value_reviews`/`value_results`/`value_evidence`, plus
+`initiative_id` columns on `artifacts` and `conversations`. DDL in `schema-value-spine.sql`,
+rationale in [`docs/value-spine.md`](docs/value-spine.md). Not applied; absent from the CALM
+model until built.
+
 ---
 
 ## 6. Cross-cutting concerns
@@ -241,6 +250,7 @@ Full rationale in [`CLAUDE.md`](CLAUDE.md). Decisions revised during the POC are
 | 6 | agentregistry Enterprise vs OSS — procurement question | Deferred |
 | + | **agentgateway stood up now** (M1) as LLM + MCP endpoint | New (this POC) |
 | + | **Second skill** `summarize_requirements` for the Consumer journey | New (this POC) |
+| 7 | **Value-spine domain layer** — initiatives, seven-stage lifecycle, OKR/KPI ladder, value results, line-of-business ledger ([`docs/value-spine.md`](docs/value-spine.md), `schema-value-spine.sql`) | **Proposed** — not built, not in the CALM model |
 
 ---
 
